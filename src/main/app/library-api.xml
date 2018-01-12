@@ -11,6 +11,10 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
     <apikit:config name="library-api-config" raml="library-api.raml" consoleEnabled="false" doc:name="Router"/>
     <db:mysql-config name="MySQL_Configuration" host="${mysql.host}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" doc:name="MySQL Configuration"/>
     <context:property-placeholder location="commons.properties,${mule.env}.properties"/>
+    <db:template-query name="SelectBook" doc:name="Template Query">
+        <db:parameterized-query><![CDATA[SELECT * FROM books WHERE id = :id]]></db:parameterized-query>
+        <db:in-param name="id" defaultValue="0"/>
+    </db:template-query>
     
     <flow name="library-api-main">
         <http:listener config-ref="library-api-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
@@ -22,7 +26,10 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
         <apikit:console config-ref="library-api-config" doc:name="APIkit Console"/>
     </flow>
     <flow name="put:/books/{bookId}:application/json:library-api-config">
+        <logger message="#[message] #[message.inboundProperties['http.uri.params'].bookId]" level="INFO" doc:name="Logger"/>
+        <logger message="ETag #[message.inboundProperties.ETag]" level="INFO" doc:name="Logger"/>
         <set-payload value="{&#xA;  &quot;code&quot; : 1003,&#xA;  &quot;message&quot; : &quot;Parâmetros de entrada inválidos&quot;,&#xA;  &quot;description&quot; : &quot;Aqui vão os detalhes do erro&quot;&#xA;}" doc:name="Set Payload"/>
+        <set-property propertyName="ETag" value="#[function:uuid]" doc:name="Set ETag"/>
     </flow>
     <flow name="put:/students/{studentId}/loans/{loanId}:application/json:library-api-config">
         <set-payload value="{&#xA;  &quot;code&quot; : 1003,&#xA;  &quot;message&quot; : &quot;Parâmetros de entrada inválidos&quot;,&#xA;  &quot;description&quot; : &quot;Aqui vão os detalhes do erro&quot;&#xA;}" doc:name="Set Payload"/>
@@ -55,6 +62,7 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
             <otherwise>
                 <db:select config-ref="MySQL_Configuration" doc:name="Database">
                     <db:parameterized-query><![CDATA[SELECT * FROM books]]></db:parameterized-query>
+
                 </db:select>
             </otherwise>
         </choice>
@@ -71,7 +79,20 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
         <set-payload value="{&#xA;  &quot;students&quot;: [&#xA;    {&#xA;      &quot;name&quot;: &quot;João Silva&quot;,&#xA;      &quot;registration&quot;: &quot;AB818445&quot;,&#xA;      &quot;phone&quot;: &quot;(11) 92356-7890&quot;,&#xA;      &quot;email&quot;: &quot;joao.silva@gmail.com&quot;&#xA;    },&#xA;    {&#xA;      &quot;name&quot;: &quot;Joana Silva&quot;,&#xA;      &quot;registration&quot;: &quot;AB818445&quot;,&#xA;      &quot;phone&quot;: &quot;(11) 92356-5555&quot;,&#xA;      &quot;email&quot;: &quot;joana.silva@gmail.com&quot;&#xA;    }&#xA;  ]&#xA;}" doc:name="Set Payload"/>
     </flow>
     <flow name="get:/books/{bookId}:library-api-config">
-        <set-payload value="{&#xA;  &quot;title&quot;: &quot;Origem&quot;,&#xA;  &quot;publisher&quot;: &quot;Horizonte&quot;,&#xA;  &quot;author&quot;: &quot;Dan Brown&quot;,&#xA;  &quot;isbn&quot;: &quot;978-1-56619-909-4&quot;,&#xA;  &quot;category&quot;: &quot;Ficção&quot;&#xA;}" doc:name="Set Payload"/>
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:template-query-ref name="SelectBook"/>
+            <db:in-param name="id" value="#[flowVars.bookId]"/>
+        </db:select>
+        <choice doc:name="Choice">
+            <when expression="#[payload.size() &gt; 0]">
+                <set-payload value="#[payload.get(0)]" doc:name="Set Payload"/>
+            </when>
+            <otherwise>
+                <expression-filter expression="#[throw new org.mule.module.apikit.exception.NotFoundException();]" doc:name="Expression"/>
+
+            </otherwise>
+        </choice>
+
     </flow>
     <flow name="get:/students/{studentId}/loans/{loanId}:library-api-config">
         <set-payload value="{&#xA;      &quot;isbn&quot;: &quot;978-1-56619-909-4&quot;,&#xA;      &quot;loanDate&quot;: &quot;2018-01-09&quot;,&#xA;      &quot;returnDate&quot;: &quot;2018-01-19&quot;,&#xA;      &quot;effectiveReturnDate&quot;: &quot;2018-01-17&quot;,&#xA;      &quot;lateReturn&quot;: false&#xA;}" doc:name="Set Payload"/>
@@ -80,7 +101,15 @@ http://www.springframework.org/schema/context http://www.springframework.org/sch
         <set-payload value="{&#xA;  &quot;name&quot;: &quot;João Silva&quot;,&#xA;  &quot;registration&quot;: &quot;AB818445&quot;,&#xA;  &quot;phone&quot;: &quot;(11) 92356-7890&quot;,&#xA;  &quot;email&quot;: &quot;joao.silva@gmail.com&quot;&#xA;}" doc:name="Set Payload"/>
     </flow>
     <flow name="post:/books:application/json:library-api-config">
-        <logger message="#[payload:java.lang.String]" level="INFO" doc:name="Logger"/>
+        <logger message="antes #[payload:java.lang.String]" level="INFO" doc:name="Logger"/>
+
+        
+        <db:insert config-ref="MySQL_Configuration" doc:name="Database" autoGeneratedKeys="true">
+            <db:parameterized-query><![CDATA[INSERT INTO books (title, publisher, author, isbn, category) VALUES (#[json:/title],#[json:/publisher],#[json:/author],#[json:/isbn],#[json:/category]);]]></db:parameterized-query>
+        </db:insert>
+
+        <logger message="depois #[payload.get(0).get(&quot;GENERATED_KEY&quot;)]" level="INFO" doc:name="Logger"/>
+        <set-property doc:name="Set Header" propertyName="Location" value="http://localhost:${http.port}/api/books/#[payload.get(0).get(&quot;GENERATED_KEY&quot;)]"/>
 
     </flow>
     <flow name="post:/students/{studentId}/loans:application/json:library-api-config">
