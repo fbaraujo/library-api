@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <http:listener-config name="library-api-httpListenerConfig" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+    <apikit:config name="library-api-config" raml="library-api.raml" consoleEnabled="false" doc:name="Router"/>
+    
+    <db:mysql-config name="MySQL_Configuration" host="${mysql.host}" port="${mysql.port}" user="root" password="123456" database="library-api" doc:name="MySQL Configuration"/>
+    
+    <flow name="library-api-main">
+        <http:listener config-ref="library-api-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
+        <apikit:router config-ref="library-api-config" doc:name="APIkit Router"/>
+        <exception-strategy ref="library-api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="library-api-console">
+        <http:listener config-ref="library-api-httpListenerConfig" path="/console/*" doc:name="HTTP"/>
+        <apikit:console config-ref="library-api-config" doc:name="APIkit Console"/>
+    </flow>
+    <flow name="put:/books/{bookId}:application/json:library-api-config">
+        <set-payload value="{&#xA;  &quot;code&quot; : 1003,&#xA;  &quot;message&quot; : &quot;Parâmetros de entrada inválidos&quot;,&#xA;  &quot;description&quot; : &quot;Aqui vão os detalhes do erro&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="put:/students/{studentId}/loans/{loanId}:application/json:library-api-config">
+        <set-payload value="{&#xA;  &quot;code&quot; : 1003,&#xA;  &quot;message&quot; : &quot;Parâmetros de entrada inválidos&quot;,&#xA;  &quot;description&quot; : &quot;Aqui vão os detalhes do erro&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="put:/students/{studentId}:application/json:library-api-config">
+        <set-payload value="{&#xA;  &quot;code&quot; : 1003,&#xA;  &quot;message&quot; : &quot;Parâmetros de entrada inválidos&quot;,&#xA;  &quot;description&quot; : &quot;Aqui vão os detalhes do erro&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="delete:/books/{bookId}:library-api-config">
+        <set-payload value="{&#xA;  &quot;code&quot; : 1009,&#xA;  &quot;message&quot; : &quot;Recurso não encontrado&quot;,&#xA;  &quot;description&quot; : &quot;Aqui vão os detalhes do erro&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="delete:/students/{studentId}:library-api-config">
+        <set-payload value="{&#xA;  &quot;code&quot; : 1003,&#xA;  &quot;message&quot; : &quot;Acesso não autorizado&quot;,&#xA;  &quot;description&quot; : &quot;Aqui vão os detalhes do erro&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="patch:/students/{studentId}/loans/{loanId}:application/json:library-api-config">
+        <set-payload value="{&#xA;      &quot;lateReturn&quot;: false&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="get:/books:library-api-config">
+        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+            <db:template-query-ref/>
+        </db:select>
+        <logger level="INFO" doc:name="Logger" message="#[payload.size()]"/>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <set-payload value="{ &quot;books&quot;:  #[payload] }" doc:name="Set Payload" mimeType="application/json"/>
+
+    </flow>
+    <flow name="get:/students/{studentId}/loans:library-api-config">
+        <set-payload value="{&#xA;  &quot;loans&quot;: [&#xA;    {&#xA;      &quot;isbn&quot;: &quot;978-1-56619-909-4&quot;,&#xA;      &quot;loanDate&quot;: &quot;2018-01-09&quot;,&#xA;      &quot;returnDate&quot;: &quot;2018-01-19&quot;,&#xA;      &quot;effectiveReturnDate&quot;: &quot;2018-01-17&quot;,&#xA;      &quot;lateReturn&quot;: false&#xA;    },&#xA;    {&#xA;      &quot;isbn&quot;: &quot;978-0-12345-100-7&quot;,&#xA;      &quot;loanDate&quot;: &quot;2017-12-15&quot;,&#xA;      &quot;returnDate&quot;: &quot;2017-12-25&quot;,&#xA;      &quot;effectiveReturnDate&quot;: &quot;2017-12-28&quot;,&#xA;      &quot;lateReturn&quot;: true&#xA;    }&#xA;  ]&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="get:/students:library-api-config">
+        <set-payload value="{&#xA;  &quot;students&quot;: [&#xA;    {&#xA;      &quot;name&quot;: &quot;João Silva&quot;,&#xA;      &quot;registration&quot;: &quot;AB818445&quot;,&#xA;      &quot;phone&quot;: &quot;(11) 92356-7890&quot;,&#xA;      &quot;email&quot;: &quot;joao.silva@gmail.com&quot;&#xA;    },&#xA;    {&#xA;      &quot;name&quot;: &quot;Joana Silva&quot;,&#xA;      &quot;registration&quot;: &quot;AB818445&quot;,&#xA;      &quot;phone&quot;: &quot;(11) 92356-5555&quot;,&#xA;      &quot;email&quot;: &quot;joana.silva@gmail.com&quot;&#xA;    }&#xA;  ]&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="get:/books/{bookId}:library-api-config">
+        <set-payload value="{&#xA;  &quot;title&quot;: &quot;Origem&quot;,&#xA;  &quot;publisher&quot;: &quot;Horizonte&quot;,&#xA;  &quot;author&quot;: &quot;Dan Brown&quot;,&#xA;  &quot;isbn&quot;: &quot;978-1-56619-909-4&quot;,&#xA;  &quot;category&quot;: &quot;Ficção&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="get:/students/{studentId}/loans/{loanId}:library-api-config">
+        <set-payload value="{&#xA;      &quot;isbn&quot;: &quot;978-1-56619-909-4&quot;,&#xA;      &quot;loanDate&quot;: &quot;2018-01-09&quot;,&#xA;      &quot;returnDate&quot;: &quot;2018-01-19&quot;,&#xA;      &quot;effectiveReturnDate&quot;: &quot;2018-01-17&quot;,&#xA;      &quot;lateReturn&quot;: false&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="get:/students/{studentId}:library-api-config">
+        <set-payload value="{&#xA;  &quot;name&quot;: &quot;João Silva&quot;,&#xA;  &quot;registration&quot;: &quot;AB818445&quot;,&#xA;  &quot;phone&quot;: &quot;(11) 92356-7890&quot;,&#xA;  &quot;email&quot;: &quot;joao.silva@gmail.com&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="post:/books:application/json:library-api-config">
+        <logger message="#[payload:java.lang.String]" level="INFO" doc:name="Logger"/>
+
+    </flow>
+    <flow name="post:/students/{studentId}/loans:application/json:library-api-config">
+        <set-payload value="{&#xA;  &quot;code&quot; : 1003,&#xA;  &quot;message&quot; : &quot;Acesso não autorizado&quot;,&#xA;  &quot;description&quot; : &quot;Aqui vão os detalhes do erro&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <flow name="post:/students:application/json:library-api-config">
+        <set-payload value="{&#xA;  &quot;code&quot; : 1003,&#xA;  &quot;message&quot; : &quot;Acesso não autorizado&quot;,&#xA;  &quot;description&quot; : &quot;Aqui vão os detalhes do erro&quot;&#xA;}" doc:name="Set Payload"/>
+    </flow>
+    <apikit:mapping-exception-strategy name="library-api-apiKitGlobalExceptionMapping">
+        <apikit:mapping statusCode="404">
+            <apikit:exception value="org.mule.module.apikit.exception.NotFoundException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Resource not found&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="405">
+            <apikit:exception value="org.mule.module.apikit.exception.MethodNotAllowedException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Method not allowed&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="415">
+            <apikit:exception value="org.mule.module.apikit.exception.UnsupportedMediaTypeException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Unsupported media type&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="406">
+            <apikit:exception value="org.mule.module.apikit.exception.NotAcceptableException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Not acceptable&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+        <apikit:mapping statusCode="400">
+            <apikit:exception value="org.mule.module.apikit.exception.BadRequestException" />
+            <set-property propertyName="Content-Type" value="application/json" doc:name="Property"/>
+            <set-payload value="{ &quot;message&quot;: &quot;Bad request&quot; }" doc:name="Set Payload"/>
+        </apikit:mapping>
+    </apikit:mapping-exception-strategy>
+</mule>
