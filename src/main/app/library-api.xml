@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+<mule xmlns:context="http://www.springframework.org/schema/context" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/apikit http://www.mulesoft.org/schema/mule/apikit/current/mule-apikit.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
 http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
 http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
-http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
-    <http:listener-config name="library-api-httpListenerConfig" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration"/>
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd">
+    <http:listener-config name="library-api-httpListenerConfig" host="${http.host}" port="${http.port}" doc:name="HTTP Listener Configuration"/>
     <apikit:config name="library-api-config" raml="library-api.raml" consoleEnabled="false" doc:name="Router"/>
-    
-    <db:mysql-config name="MySQL_Configuration" host="${mysql.host}" port="${mysql.port}" user="root" password="123456" database="library-api" doc:name="MySQL Configuration"/>
+    <db:mysql-config name="MySQL_Configuration" host="${mysql.host}" port="${mysql.port}" user="${mysql.user}" password="${mysql.password}" database="${mysql.database}" doc:name="MySQL Configuration"/>
+    <context:property-placeholder location="commons.properties,${mule.env}.properties"/>
     
     <flow name="library-api-main">
         <http:listener config-ref="library-api-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
@@ -39,9 +40,25 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <set-payload value="{&#xA;      &quot;lateReturn&quot;: false&#xA;}" doc:name="Set Payload"/>
     </flow>
     <flow name="get:/books:library-api-config">
-        <db:select config-ref="MySQL_Configuration" doc:name="Database">
-            <db:template-query-ref/>
-        </db:select>
+        <logger message="#[message]" level="INFO" doc:name="Logger"/>
+        <choice doc:name="Choice">
+            <when expression="#[message.inboundProperties['http.query.params'].sortDirection == 'asc']">
+                <db:select config-ref="MySQL_Configuration" doc:name="Order By Title ASC">
+                    <db:parameterized-query><![CDATA[SELECT * FROM books ORDER BY title ASC]]></db:parameterized-query>
+                </db:select>
+            </when>
+            <when expression="#[message.inboundProperties['http.query.params'].sortDirection == 'desc']">
+                <db:select config-ref="MySQL_Configuration" doc:name="Order By Title DESC">
+                    <db:parameterized-query><![CDATA[SELECT * FROM books ORDER BY title DESC]]></db:parameterized-query>
+                </db:select>
+            </when>
+            <otherwise>
+                <db:select config-ref="MySQL_Configuration" doc:name="Database">
+                    <db:parameterized-query><![CDATA[SELECT * FROM books]]></db:parameterized-query>
+                </db:select>
+            </otherwise>
+        </choice>
+
         <logger level="INFO" doc:name="Logger" message="#[payload.size()]"/>
         <json:object-to-json-transformer doc:name="Object to JSON"/>
         <set-payload value="{ &quot;books&quot;:  #[payload] }" doc:name="Set Payload" mimeType="application/json"/>
