@@ -64,6 +64,7 @@ LIMIT
         <json:object-to-json-transformer doc:name="Object to JSON"/>
         <set-payload value="{ &quot;books&quot;:  #[payload] }" doc:name="Set Payload" mimeType="application/json"/>
 
+        
     </flow>
     
     <flow name="get:/books/{bookId}:library-api-config">
@@ -71,10 +72,11 @@ LIMIT
             <db:template-query-ref name="SelectBook"/>
             <db:in-param name="id" value="#[flowVars.bookId]"/>
         </db:select>
+
         <validation:validate-size message="Livro n&#227;o encontrado." exceptionClass="org.mule.module.apikit.exception.NotFoundException" value="#[payload]" min="1" doc:name="Validation"/>
         <set-payload value="#[payload.get(0)]" doc:name="Set Response Payload"/>
 
-
+        
     </flow>
     <flow name="post:/books:application/json:library-api-config">
 

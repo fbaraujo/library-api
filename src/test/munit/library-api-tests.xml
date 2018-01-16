@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http"
+<mule xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http"
 	xmlns:mock="http://www.mulesoft.org/schema/mule/mock"
-	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/mock http://www.mulesoft.org/schema/mule/mock/current/mule-mock.xsd
 http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
 http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
         <munit:config
 	    	mock-connectors="false"
 	    	mock-inbounds="false"
@@ -18,14 +21,102 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
         <spring:import resource="classpath:students.xml"/>
     </spring:beans>
     <http:request-config name="HTTP_Request_Configuration" host="localhost" port="8081" basePath="/api" doc:name="HTTP Request Configuration"/>
-    <munit:test name="library-api-tests-get:/books:library-api-configTest" description="Test">
-        <mock:when messageProcessor=".*:.*" doc:name="Mock Listagem de Livros">
+    <munit:test name="library-api-tests-get:/books:library-api-configTest" description="Test" >
+        
+		<scripting:component doc:name="lista de livros">
+			<scripting:script
+				engine="Groovy"
+				name="mock_db_books"><![CDATA[LinkedList<org.mule.util.CaseInsensitiveHashMap> list = new LinkedList();
+org.mule.util.CaseInsensitiveHashMap<String, Object> first = new org.mule.util.CaseInsensitiveHashMap();
+org.mule.util.CaseInsensitiveHashMap<String, Object> second = new org.mule.util.CaseInsensitiveHashMap();
+
+first.put("id", 1);
+first.put("title", "a");
+first.put("category", "a");
+first.put("isbn", "a");
+first.put("publisher", "a");
+first.put("author", "a");
+
+second.put("id", 2);
+second.put("title", "a");
+second.put("category", "a");
+second.put("isbn", "a");
+second.put("publisher", "a");
+second.put("author", "a");
+
+list.add(first);
+list.add(second);
+
+return list;]]></scripting:script>
+		</scripting:component>
+		<mock:when messageProcessor=".*:.*" doc:name="Mock Listagem de Livros">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['Listagem de Livros']"/>
             </mock:with-attributes>
-            <mock:then-return payload="#[getResource('examples/books-response-test.json').asString()]"/>
+            <mock:then-return payload="#[resultOfScript('mock_db_books')]"/>
         </mock:when>
         <http:request config-ref="HTTP_Request_Configuration" path="/books" method="GET" doc:name="HTTP"/>
+        <logger message="#[payload:java.lang.String]" level="INFO" doc:name="RESULTADO"/>
         <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="Assert True"/>
+    </munit:test>
+    <munit:test name="library-api-tests-get:/books/{bookId}:library-api-configTest" description="Test">
+        
+		<scripting:component doc:name="lista de livros">
+			<scripting:script
+				engine="Groovy"
+				name="mock_db_book"><![CDATA[LinkedList<org.mule.util.CaseInsensitiveHashMap> list = new LinkedList();
+org.mule.util.CaseInsensitiveHashMap<String, Object> first = new org.mule.util.CaseInsensitiveHashMap();
+org.mule.util.CaseInsensitiveHashMap<String, Object> second = new org.mule.util.CaseInsensitiveHashMap();
+
+first.put("id", 1);
+first.put("title", "a");
+first.put("category", "a");
+first.put("isbn", "a");
+first.put("publisher", "a");
+first.put("author", "a");
+
+list.add(first);
+
+return list;]]></scripting:script>
+		</scripting:component>
+        <mock:when messageProcessor=".*:.*" doc:name="Mock Obter Livro pelo ID">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Obter Livro pelo ID']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('mock_db_book')]"/>
+        </mock:when>
+        <http:request config-ref="HTTP_Request_Configuration" path="/books/{bookId}" method="GET" doc:name="HTTP">
+            <http:request-builder>
+                <http:uri-param paramName="bookId" value="1"/>
+            </http:request-builder>
+        </http:request>
+        <logger message="#[payload:java.lang.String]" level="INFO" doc:name="RESULTADO"/>
+        <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="Assert True"/>
+    </munit:test>
+	<munit:test name="library-api-tests-415-unsupported-media-type" description="MUnit Test">
+        <mock:throw-an exception-ref="#[new org.mule.module.apikit.exception.UnsupportedMediaTypeException()]" whenCalling=".*:.*" doc:name="Throw an Exception">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Listagem de Livros']"/>
+            </mock:with-attributes>
+        </mock:throw-an>
+        <http:request config-ref="HTTP_Request_Configuration" path="/books" method="GET" doc:name="HTTP">
+            <http:success-status-code-validator values="415"/>
+        </http:request>
+        <logger message="#[payload:java.lang.String]" level="INFO" doc:name="RESULTADO"/>
+        <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(415))]" doc:name="Assert True"/>
+    
+    </munit:test>
+	<munit:test name="library-api-tests-406-not-acceptable" description="MUnit Test">
+        <mock:throw-an exception-ref="#[new org.mule.module.apikit.exception.NotAcceptableException()]" whenCalling=".*:.*" doc:name="Throw an Exception">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Listagem de Livros']"/>
+            </mock:with-attributes>
+        </mock:throw-an>
+        <http:request config-ref="HTTP_Request_Configuration" path="/books" method="GET" doc:name="HTTP">
+            <http:success-status-code-validator values="406"/>
+        </http:request>
+        <logger message="#[payload:java.lang.String]" level="INFO" doc:name="RESULTADO"/>
+        <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(406))]" doc:name="Assert True"/>
+    
     </munit:test>
 </mule>
