@@ -23,7 +23,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['Listagem de Livros']"/>
             </mock:with-attributes>
-            <mock:then-return payload="#[getResource('examples/books-response-test.json').asString()]" mimeType="application/json"/>
+            <mock:then-return payload="#[getResource('examples/books-response-test.json').asString()]"/>
         </mock:when>
         <http:request config-ref="HTTP_Request_Configuration" path="/books" method="GET" doc:name="HTTP"/>
         <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="Assert True"/>
