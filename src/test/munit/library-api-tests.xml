@@ -119,4 +119,35 @@ return list;]]></scripting:script>
         <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(406))]" doc:name="Assert True"/>
     
     </munit:test>
+    <munit:test name="library-api-tests-post:/books:application/json:library-api-configTest" description="Test">
+    	 
+		<scripting:component doc:name="lista de livros">
+			<scripting:script
+				engine="Groovy"
+				name="mock_db_book_post"><![CDATA[LinkedList<org.mule.util.CaseInsensitiveHashMap> list = new LinkedList();
+org.mule.util.CaseInsensitiveHashMap<String, Object> first = new org.mule.util.CaseInsensitiveHashMap();
+
+first.put("GENERATED_KEY", 1);
+list.add(first);
+
+return list;]]></scripting:script>
+		</scripting:component>
+        <mock:when messageProcessor=".*:.*" doc:name="Mock Obter Livro pelo ID">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Listagem de Livros']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('mock_db_book_post')]"/>
+        </mock:when>
+    	 
+    	 <set-payload value="{&quot;title&quot;:&quot;a&quot;,&quot;category&quot;:&quot;a&quot;,&quot;isbn&quot;:&quot;111-2-33333-444-5&quot;,&quot;publisher&quot;:&quot;a&quot;,&quot;author&quot;:&quot;a&quot;}" doc:name="Set Payload" mimeType="application/json"/>
+    	
+    	<http:request config-ref="HTTP_Request_Configuration" path="/books" method="POST" doc:name="HTTP">
+      		<http:request-builder>
+            	<http:header headerName="Content-Type" value="application/json"/>
+    	    </http:request-builder>
+    	</http:request>
+    	      <logger message="#[payload:java.lang.String]" level="INFO" doc:name="RESULTADO"/>
+        <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(201))]" doc:name="Assert True"/>
+    
+    </munit:test>
 </mule>
