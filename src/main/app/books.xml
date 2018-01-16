@@ -33,7 +33,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
     </flow>
     
     <flow name="get:/books:library-api-config">
-        <db:select config-ref="MySQL_Configuration" doc:name="Database">
+        <db:select config-ref="MySQL_Configuration" doc:name="Listagem de Livros">
             <db:dynamic-query><![CDATA[SELECT * FROM books  
 #[(message.inboundProperties.'http.query.params'.title != null) ? 'WHERE title LIKE "%' + message.inboundProperties.'http.query.params'.title + '%"' : '']
 ORDER BY
