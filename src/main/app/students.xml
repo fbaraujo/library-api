@@ -22,9 +22,9 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
 
 	<flow name="get:/students:library-api-config">
         <db:select config-ref="MySQL_Configuration" doc:name="Listagem de Estudantes">
-        	<db:dynamic-query><![CDATA[SELECT * FROM studants  
-#[(message.inboundProperties.'http.query.params'.name != null) ? 'WHERE name LIKE "%' + message.inboundProperties.'http.query.params'.name + '%"' : '']
-]]></db:dynamic-query>
+            <db:dynamic-query><![CDATA[SELECT * FROM students  
+#[(message.inboundProperties.'http.query.params'.name != null) ? 'WHERE name LIKE "%' + message.inboundProperties.'http.query.params'.name + '%"' : '']]]></db:dynamic-query>
+
         </db:select>
         <json:object-to-json-transformer doc:name="Object to JSON"/>
         <set-payload value="{ &quot;students&quot;: #[payload] }" doc:name="Set Response Payload"/>

@@ -46,7 +46,8 @@ http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mu
     
     <flow name="library-api-main">
         <http:listener config-ref="library-api-httpListenerConfig" path="/api/*" doc:name="HTTP"/>
-        <logger message="#[message]" level="INFO" doc:name="Message Log"/>
+        <logger message="#[message]" level="INFO" doc:name="Message Logger"/>
+
         <apikit:router config-ref="library-api-config" doc:name="APIkit Router"/>
         <exception-strategy ref="library-api-apiKitGlobalExceptionMapping" doc:name="Reference Exception Strategy"/>
     </flow>

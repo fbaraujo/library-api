@@ -23,6 +23,7 @@ ORDER BY
 LIMIT
 #[(message.inboundProperties.'http.query.params'.offset != null) ? message.inboundProperties.'http.query.params'.offset - 1 : 0],
 #[(message.inboundProperties.'http.query.params'.limit != null) ? message.inboundProperties.'http.query.params'.limit : 10]]]></db:dynamic-query>
+
         </db:select>
         <json:object-to-json-transformer doc:name="Object to JSON"/>
         <set-payload value="{ &quot;books&quot;:  #[payload] }" doc:name="Set Response Payload"/>

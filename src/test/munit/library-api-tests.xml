@@ -26,6 +26,7 @@ http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/jso
         <spring:import resource="classpath:books.xml"/>
         <spring:import resource="classpath:library-api.xml"/>
         <spring:import resource="classpath:students.xml"/>
+        <spring:import resource="classpath:loans.xml"/>
     </spring:beans>
     
     <http:request-config 
@@ -141,6 +142,60 @@ list.add(first);
 
 return list;]]></scripting:script>
 		</scripting:component>
+		<scripting:component doc:name="insert loan response">
+			<scripting:script
+				engine="Groovy"
+				name="insert-loan-response"><![CDATA[LinkedList<org.mule.util.CaseInsensitiveHashMap> list = new LinkedList();
+org.mule.util.CaseInsensitiveHashMap<String, Object> first = new org.mule.util.CaseInsensitiveHashMap();
+
+first.put("GENERATED_KEY", 1);
+list.add(first);
+
+return list;]]></scripting:script>
+		</scripting:component>
+        <scripting:component doc:name="select loans response">
+            			<scripting:script
+				engine="Groovy"
+				name="select-loans-response"><![CDATA[LinkedList<org.mule.util.CaseInsensitiveHashMap> list = new LinkedList();
+org.mule.util.CaseInsensitiveHashMap<String, Object> first = new org.mule.util.CaseInsensitiveHashMap();
+org.mule.util.CaseInsensitiveHashMap<String, Object> second = new org.mule.util.CaseInsensitiveHashMap();
+
+first.put("id", 1);
+first.put("isbn", "978-1-56619-909-4");
+first.put("loanDate", "2018-01-09");
+first.put("returnDate", "2018-01-19");
+first.put("effectiveReturnDate", "2018-01-17");
+first.put("lateReturn", 0);
+
+second.put("id", 2);
+second.put("isbn", "978-0-12345-100-7");
+second.put("loanDate", "2017-12-15");
+second.put("returnDate", "2017-12-25");
+second.put("effectiveReturnDate", "2017-12-28");
+second.put("lateReturn", 1);
+
+list.add(first);
+list.add(second);
+
+return list;]]></scripting:script>
+        </scripting:component>
+        <scripting:component doc:name="select loan response">
+            			<scripting:script
+				engine="Groovy"
+				name="select-loan-response"><![CDATA[LinkedList<org.mule.util.CaseInsensitiveHashMap> list = new LinkedList();
+org.mule.util.CaseInsensitiveHashMap<String, Object> first = new org.mule.util.CaseInsensitiveHashMap();
+
+first.put("id", 1);
+first.put("isbn", "978-1-56619-909-4");
+first.put("loanDate", "2018-01-09");
+first.put("returnDate", "2018-01-19");
+first.put("effectiveReturnDate", "2018-01-17");
+first.put("lateReturn", 0);
+
+list.add(first);
+
+return list;]]></scripting:script>
+        </scripting:component>
     </sub-flow>
     
     <munit:test name="library-api-tests-get:/books:library-api-configTest" description="Test" >
@@ -162,7 +217,7 @@ return list;]]></scripting:script>
             </mock:with-attributes>
             <mock:then-return payload="#[resultOfScript('insert-book-response')]"/>
         </mock:when>
-    	<set-payload value="{&quot;title&quot;:&quot;a&quot;,&quot;category&quot;:&quot;a&quot;,&quot;isbn&quot;:&quot;111-2-33333-444-5&quot;,&quot;publisher&quot;:&quot;a&quot;,&quot;author&quot;:&quot;a&quot;}" doc:name="Set POST Payload" mimeType="application/json"/>
+    	<set-payload value="#[getResource('examples/book-example.json').asString()]" doc:name="Set POST Payload" mimeType="application/json"/>
     	<http:request config-ref="HTTP_Request_Configuration" path="/books" method="POST" doc:name="HTTP">
       		<http:request-builder>
             	<http:header headerName="Content-Type" value="application/json"/>
@@ -188,13 +243,14 @@ return list;]]></scripting:script>
     </munit:test>
 	
 	<munit:test name="library-api-tests-put:/books/{bookId}:application/json:library-api-configTest" description="Test">
-        <mock:when messageProcessor=".*:.*" doc:name="Mock Atualiza Livro">
+        <mock:when messageProcessor=".*:.*" doc:name="Mock Atualizar Livro">
             <mock:with-attributes>
-                <mock:with-attribute name="doc:name" whereValue="#['Criar Livro']"/>
+                <mock:with-attribute name="doc:name" whereValue="#['Atualizar Livro']"/>
             </mock:with-attributes>
             <mock:then-return payload="#[[]]"/>
+
         </mock:when>
-    	<set-payload value="{&quot;id&quot;: 1, &quot;title&quot;:&quot;a&quot;,&quot;category&quot;:&quot;a&quot;,&quot;isbn&quot;:&quot;111-2-33333-444-5&quot;,&quot;publisher&quot;:&quot;a&quot;,&quot;author&quot;:&quot;a&quot;}" doc:name="Set PUT Payload" mimeType="application/json"/>
+    	<set-payload value="#[getResource('examples/book-put-request-example.json').asString()]" doc:name="Set PUT Payload" mimeType="application/json"/>
     	<http:request config-ref="HTTP_Request_Configuration" path="/books/{bookId}" method="PUT" doc:name="HTTP">
       		<http:request-builder>
                 <http:uri-param paramName="bookId" value="1"/>
@@ -244,7 +300,7 @@ return list;]]></scripting:script>
             <mock:then-return payload="#[resultOfScript('insert-student-response')]"/>
 
 	    </mock:when>
-		<set-payload value="{&quot;name&quot;:&quot;a&quot;,&quot;registration&quot;:&quot;a&quot;,&quot;phone&quot;:&quot;a&quot;,&quot;email&quot;:&quot;a&quot;}" doc:name="Set POST Payload" mimeType="application/json"/>
+		<set-payload value="#[getResource('examples/student-example.json').asString()]" doc:name="Set POST Payload" mimeType="application/json"/>
 		<http:request config-ref="HTTP_Request_Configuration" path="/students" method="POST" doc:name="HTTP">
 		    <http:request-builder>
                 <http:header headerName="Content-Type" value="application/json"/>
@@ -278,7 +334,7 @@ return list;]]></scripting:script>
 	        </mock:with-attributes>
 	        <mock:then-return payload="#[[]]"/>
 	    </mock:when>
-	  <set-payload value="{&quot;id&quot;: 1, &quot;name&quot;:&quot;a&quot;,&quot;registration&quot;:&quot;a&quot;,&quot;phone&quot;: &quot;a&quot;,&quot;email&quot;:&quot;a&quot;}" doc:name="Set PUT Payload" mimeType="application/json"/>
+	  <set-payload value="#[getResource('examples/student-put-request-example.json').asString()]" doc:name="Set PUT Payload" mimeType="application/json"/>
 	  <http:request config-ref="HTTP_Request_Configuration" path="/students/{studentId}" method="PUT" doc:name="HTTP">
 	      <http:request-builder>
 	            <http:uri-param paramName="studentId" value="1"/>
@@ -308,31 +364,117 @@ return list;]]></scripting:script>
 	    <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(204))]" doc:name="Assert HTTP Status Code"/>
 	</munit:test>
 
-<!--     <munit:test name="library-api-tests-get:/students/{studentId}/loans:library-api-configTest" description="Test"> -->
+    <munit:test name="library-api-tests-get:/students/{studentId}/loans:library-api-configTest" description="Test">
+		<mock:when messageProcessor=".*:.*" doc:name="Mock Listar Emprestimos">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Listar Emprestimos']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('select-loans-response')]"/>
 
-<!--     </munit:test> -->
+        </mock:when>
 
-<!--     <munit:test name="library-api-tests-post:/students/{studentId}/loans:application/json:library-api-configTest" description="Test"> -->
+	    <http:request config-ref="HTTP_Request_Configuration" path="/students/{studentId}/loans" method="GET" doc:name="HTTP">
+	        <http:request-builder>
+                <http:uri-param paramName="studentId" value="1"/>
 
-<!--     </munit:test> -->
+	        </http:request-builder>
+
+	    </http:request>
+        <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="Assert HTTP Status Code"/>
+        <munit:assert-not-null message="The Payload is NULL" doc:name="Assert Not Null Payload"/>
+    </munit:test>
+
+    <munit:test name="library-api-tests-post:/students/{studentId}/loans:application/json:library-api-configTest" description="Test">
+	    <mock:when messageProcessor=".*:.*" doc:name="Mock Criar Emprestimo">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Criar Emprestimo']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('insert-loan-response')]"/>
+
+
+	    </mock:when>
+		<set-payload value="#[getResource('examples/loan-post.json').asString()]" doc:name="Set POST Payload" mimeType="application/json"/>
+		<http:request config-ref="HTTP_Request_Configuration" path="/students/{studentId}/loans" method="POST" doc:name="HTTP">
+		    <http:request-builder>
+                <http:header headerName="Content-Type" value="application/json"/>
+                <http:header headerName="X-Authentication" value="123"/>
+		    </http:request-builder>
+		</http:request>
+	    <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(201))]" doc:name="Assert HTTP Status Code"/>
+	</munit:test>
     
-<!--     <munit:test name="library-api-tests-get:/students/{studentId}/loans/{loanId}:library-api-configTest" description="Test"> -->
+    <munit:test name="library-api-tests-get:/students/{studentId}/loans/{loanId}:library-api-configTest" description="Test">
+		<mock:when messageProcessor=".*:.*" doc:name="Mock Obter Empréstimo de Livro pelo ID">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Obter Empréstimo de Livro pelo ID']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('select-loan-response')]"/>
 
-<!--     </munit:test> -->
+        </mock:when>
 
-<!--     <munit:test name="library-api-tests-put:/students/{studentId}/loans/{loanId}:application/json:library-api-configTest" description="Test"> -->
+	    <http:request config-ref="HTTP_Request_Configuration" path="/students/{studentId}/loans/{loanId}" method="GET" doc:name="HTTP">
+	        <http:request-builder>
+                <http:uri-param paramName="studentId" value="1"/>
+                <http:uri-param paramName="loanId" value="1"/>
 
-<!--     </munit:test> -->
+	        </http:request-builder>
 
-<!--     <munit:test name="library-api-tests-patch:/students/{studentId}/loans/{loanId}:application/json:library-api-configTest" description="Test"> -->
+	    </http:request>
+        <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="Assert HTTP Status Code"/>
+        <munit:assert-not-null message="The Payload is NULL" doc:name="Assert Not Null Payload"/>
+    </munit:test>
 
-<!--     </munit:test> -->
+    <munit:test name="library-api-tests-put:/students/{studentId}/loans/{loanId}:application/json:library-api-configTest" description="Test">
+		<mock:when messageProcessor=".*:.*" doc:name="Mock Atualiza Informação do Empréstimo do Livro">
+       		<mock:with-attributes>
+           		<mock:with-attribute name="doc:name" whereValue="#['Atualiza Informação do Empréstimo do Livro']"/>
+       		</mock:with-attributes>
+			<mock:then-return payload="#[[]]"/>
+		</mock:when>
+		<set-payload value="#[getResource('examples/loan-put-request-example.json').asString()]" doc:name="Set PUT Payload" mimeType="application/json"/>
+		<http:request config-ref="HTTP_Request_Configuration" path="/students/{studentId}/loans/{loanId}" method="PUT" doc:name="HTTP">
+     		<http:request-builder>
+				<http:uri-param paramName="studentId" value="1"/>
+   				<http:uri-param paramName="loanId" value="1"/>
+				<http:header headerName="Content-Type" value="application/json"/>
+				<http:header headerName="ETag" value="123"/>
+			</http:request-builder>
+		</http:request>
+		<munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(204))]" doc:name="Assert HTTP Status Code"/>
+	</munit:test>
+
+    <munit:test name="library-api-tests-patch:/students/{studentId}/loans/{loanId}:application/json:library-api-configTest" description="Test" >
+		<mock:when messageProcessor=".*:.*" doc:name="Mock Registra Data Real de Devolução">
+       		<mock:with-attributes>
+           		<mock:with-attribute name="doc:name" whereValue="#['Registra Data Real de Devolução']"/>
+       		</mock:with-attributes>
+			<mock:then-return payload="#[[]]"/>
+		</mock:when>
+		<mock:when messageProcessor=".*:.*" doc:name="Mock Obtém Status de Atraso de Devolução">
+            <mock:with-attributes>
+                <mock:with-attribute name="doc:name" whereValue="#['Obtém Status de Atraso de Devolução']"/>
+            </mock:with-attributes>
+            <mock:then-return payload="#[resultOfScript('select-loan-response')]"/>
+        </mock:when>
+        <set-payload value="#[getResource('examples/loan-patch-request-example.json').asString()]" mimeType="application/json" doc:name="Set PATCH Payload"/>
+   		<http:request config-ref="HTTP_Request_Configuration" path="/students/{studentId}/loans/{loanId}" method="PATCH" doc:name="HTTP">
+     		<http:request-builder>
+				<http:uri-param paramName="studentId" value="1"/>
+   				<http:uri-param paramName="loanId" value="1"/>
+				<http:header headerName="Content-Type" value="application/json"/>
+				<http:header headerName="ETag" value="123"/>
+			</http:request-builder>
+		</http:request>
+        <munit:assert-true message="The HTTP Status Code is not correct!" condition="#[messageInboundProperty('http.status').is(eq(200))]" doc:name="Assert HTTP Status Code"/>
+        <munit:assert-not-null message="The Payload is NULL" doc:name="Assert Not Null Payload"/>
+    </munit:test>
 	
 	<munit:test name="library-api-tests-406-not-acceptable" description="MUnit Test">
         <mock:throw-an exception-ref="#[new org.mule.module.apikit.exception.NotAcceptableException()]" whenCalling=".*:.*" doc:name="Throw an Exception">
             <mock:with-attributes>
                 <mock:with-attribute name="doc:name" whereValue="#['Listagem de Livros']"/>
             </mock:with-attributes>
+
         </mock:throw-an>
         <http:request config-ref="HTTP_Request_Configuration" path="/books" method="GET" doc:name="HTTP">
             <http:success-status-code-validator values="406"/>
